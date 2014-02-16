@@ -1,0 +1,64 @@
+TOP = . ;
+BINDIR = bin ;
+OBJDIR = obj ;
+
+INCDIRS = include 
+;
+
+SRCDIRS =
+src
+src/sqlite
+;
+
+LIBDIRS = lib 
+;
+
+CC = gcc ;
+C++ = g++ ;
+LINK = g++ ;
+SEARCH_SOURCE = $(SRCDIRS) ;
+HDRS = $(INCDIRS) ;
+
+LINKLIBDIRS = $(LIBDIRS) ;
+LINKLIBS = stdc++ ;
+
+LLINKLIBDIRS = -L$(LINKLIBDIRS) ;
+LLINKLIBS = -l$(LINKLIBS) ;
+
+rule compile_cpp {
+	Depends $(1) : $(1:S=.cpp) ;
+	Object $(1) : $(1:S=.cpp) ;
+	MakeLocate $(1) : $(OBJDIR) ;
+}
+
+rule compile_c {
+	Depends $(1) : $(1:S=.c) ;
+	Object $(1) : $(1:S=.c) ;
+	MakeLocate $(1) : $(OBJDIR) ;
+}
+
+rule compile_objects {
+	local _obj ;
+
+	for _obj in $(1)
+	{
+		compile_cpp $(_obj) ;
+	}	
+}
+
+rule executable {
+	Depends $(1) : $(2) ;
+	Clean clean : $(1) ; 
+	LOCATE on $(1) = $(BINDIR) ;
+	compile_objects $(2) ;
+	link_executable $(1) : $(2) ;
+}
+
+actions link_executable {
+	$(LINK) -o $(1:D=$(BINDIR)) $(2:D=$(OBJDIR)) $(LLINKLIBDIRS) $(LLINKLIBS) ;
+}
+
+# SQLITE
+compile_c sqlite3.o ;
+
+executable area : main.o area.o ;
