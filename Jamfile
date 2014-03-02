@@ -7,7 +7,6 @@ INCDIRS = include
 
 SRCDIRS =
 src
-src/sqlite
 ;
 
 LIBDIRS = lib 
@@ -57,8 +56,3 @@ rule executable {
 actions link_executable {
 	$(LINK) -o $(1:D=$(BINDIR)) $(2:D=$(OBJDIR)) $(LLINKLIBDIRS) $(LLINKLIBS) ;
 }
-
-# SQLITE
-compile_c sqlite3.o ;
-
-executable area : main.o area.o ;
