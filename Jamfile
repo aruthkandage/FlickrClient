@@ -2,57 +2,71 @@ TOP = . ;
 BINDIR = bin ;
 OBJDIR = obj ;
 
-INCDIRS = include 
+INCDIRS = 
+include
+/usr/include
+/usr/include/libxml2 
 ;
 
 SRCDIRS =
 src
 ;
 
-LIBDIRS = lib 
+LIBDIRS = 
+lib
+/usr/lib 
 ;
 
 CC = gcc ;
 C++ = g++ ;
 LINK = g++ ;
-SEARCH_SOURCE = $(SRCDIRS) ;
-HDRS = $(INCDIRS) ;
 
-LINKLIBDIRS = $(LIBDIRS) ;
-LINKLIBS = stdc++ ;
+LINKLIBDIRS = -L$(LIBDIRS) ;
 
-LLINKLIBDIRS = -L$(LINKLIBDIRS) ;
-LLINKLIBS = -l$(LINKLIBS) ;
-
-rule compile_cpp {
-	Depends $(1) : $(1:S=.cpp) ;
-	Object $(1) : $(1:S=.cpp) ;
-	MakeLocate $(1) : $(OBJDIR) ;
+rule set_libs {
+    LINKLIBS on $(1) = -l$(2) ;
 }
 
-rule compile_c {
-	Depends $(1) : $(1:S=.c) ;
-	Object $(1) : $(1:S=.c) ;
-	MakeLocate $(1) : $(OBJDIR) ;
+rule compile {
+    local _obj ;
+
+    _obj = $(1:S=.o) ;
+
+	Depends $(_obj) : $(1) ;
+	Object $(_obj) : $(1) ;
+
+    SEARCH on $(1) = $(SRCDIRS) ;
+    CCHDRS on $(_obj) = [ FIncludes $(INCDIRS) ] ;
+
+    if $(DEBUG) {
+        C++FLAGS on $(_obj) += -g ;
+    } else {
+        CCDEFS on $(_obj) += [ FDefines NDEBUG ] ;
+    }
+
+	MakeLocate $(_obj) : $(OBJDIR) ;
 }
 
-rule compile_objects {
-	local _obj ;
+rule compile_sources {
+	local _src ;
 
-	for _obj in $(1)
+	for _src in $(1)
 	{
-		compile_cpp $(_obj) ;
+		compile $(_src) ;
 	}	
 }
 
 rule executable {
-	Depends $(1) : $(2) ;
+	Depends $(1) : $(2:S=.o) ;
 	Clean clean : $(1) ; 
 	LOCATE on $(1) = $(BINDIR) ;
-	compile_objects $(2) ;
-	link_executable $(1) : $(2) ;
+	compile_sources $(2) ;
+	link_executable $(1) : $(2:S=.o) ;
 }
 
 actions link_executable {
-	$(LINK) -o $(1:D=$(BINDIR)) $(2:D=$(OBJDIR)) $(LLINKLIBDIRS) $(LLINKLIBS) ;
+	$(LINK) -o $(1:D=$(LOCATE)) $(2:D=$(OBJDIR)) $(LINKLIBDIRS) $(LINKLIBS) ;
 }
+
+executable boost-asio-1 : boost-asio-1.cpp ;
+set_libs boost-asio-1 : boost_system boost_thread dl pthread xml2 ;

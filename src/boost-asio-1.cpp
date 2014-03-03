@@ -13,7 +13,7 @@ int main()
     io_service io;
     ip::tcp::resolver resolver(io);
     ip::tcp::resolver::query query("api.flickr.com", "http"); 
-    
+
     try {
         ip::tcp::resolver::iterator endpoint_iter = resolver.resolve(query);
         ip::tcp::endpoint endpoint = (*endpoint_iter).endpoint();
