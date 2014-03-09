@@ -70,3 +70,5 @@ actions link_executable {
 
 executable boost-asio-1 : boost-asio-1.cpp ;
 set_libs boost-asio-1 : boost_system boost_thread dl pthread xml2 ;
+
+executable base64_test : base64.cpp base64_test.cpp ;
