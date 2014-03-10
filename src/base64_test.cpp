@@ -19,6 +19,8 @@ int main(int argc, char** argv) {
     assert(b64.encode("The quick brow") == "VGhlIHF1aWNrIGJyb3c=");
     assert(b64.encode("The quick brown fox jumps o") == "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBv");
     assert(b64.encode("The quick brown fox jumps over the lazy dog's tail!") == "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZydzIHRhaWwh");
+    
+    assert(b64.encode("This is just\r\na test\r\n!@#$%^&*()_+-=;':\",.<>/?") == "VGhpcyBpcyBqdXN0DQphIHRlc3QNCiFAIyQlXiYqKClfKy09Oyc6IiwuPD4vPw==");
 
     return 0;
 }

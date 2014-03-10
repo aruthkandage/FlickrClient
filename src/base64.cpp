@@ -4,12 +4,14 @@
 using namespace std;
 
 /* Encoding table */
-static const unsigned char encoding_table[] = {
+const unsigned char base64::encoding_table[] = {
 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
 'U','V','W','X','Y','Z','a','b','c','d','e','f','g','h','i','j','k','l','m','n',
 'o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7',
 '8','9','+','/'
 };
+
+const unsigned int base64::bytes_per_block = 3;
 
 base64::base64() :
 in(0),
@@ -23,7 +25,7 @@ out(&_out)
 {
 }
 
-std::string base64::encode(const string& input_string) {
+std::string base64::encode(const string& input_string) throw(error) {
     return encode_all(input_string);
 }
 
@@ -33,6 +35,11 @@ void base64::encode_block(ostream& encoded_stream, const unsigned char* block) {
     encoded_stream << encoding_table[((block[0] & 0x3) << 4) | (block[1] >> 4)];
     encoded_stream << encoding_table[((block[1] & 0xf) << 2) | (block[2] >> 6)];
     encoded_stream << encoding_table[block[2] & 0x3f];
+
+    // All output operations should have succeeded
+    if(encoded_stream.fail()) {
+        throw error("base64: ostream failure");
+    }
 }
 
 void base64::encode_block(ostream& encoded_stream, const string& input_string, unsigned int index) {
@@ -64,6 +71,11 @@ void base64::encode_remaining(ostream& encoded_stream, const unsigned char* rema
         default:
         break;
     }
+
+    // All output operations should have succeeded
+    if(encoded_stream.fail()) {
+        throw error("base64: ostream failure");
+    }
 }
 
 void base64::encode_remaining(ostream& encoded_stream, const string& input_string, unsigned int index) {
@@ -79,6 +91,33 @@ void base64::encode_remaining(ostream& encoded_stream, const string& input_strin
     }
 }
 
+/*
+ * Encode chars from given istream to given ostream
+ */
+void base64::encode_all() {
+    if(in == 0 || out == 0 || !in->good() || !out->good()) return;
+
+    // Need enough space for null terminator
+    char block[bytes_per_block+1];
+    unsigned int bytes_to_encode;
+
+    for(in->get(block, bytes_per_block+1) ;
+        (bytes_to_encode = (unsigned int) in->gcount()) == bytes_per_block && in->good() ;
+        in->get(block, bytes_per_block+1)) 
+    {
+        encode_block(*out, (const unsigned char*) block);
+    }
+
+    if(in->fail()) {
+        // something went wrong in underlying stream
+        throw error("base64: istream failure");
+    }
+
+    if(bytes_to_encode > 0) {
+        encode_remaining(*out, block, bytes_to_encode);
+    } 
+}
+
 std::string base64::encode_all(const string& input_string) {
     if(input_string.length() == 0) return string();
 
@@ -86,8 +125,8 @@ std::string base64::encode_all(const string& input_string) {
 
     // Encode blocks of 24-bits
     unsigned int index;
-    const unsigned int num_complete_blocks = input_string.length() / 3;
-    for(index=0; index < num_complete_blocks * 3; index += 3) {
+    const unsigned int num_complete_blocks = input_string.length() / bytes_per_block;
+    for(index=0; index < num_complete_blocks * bytes_per_block; index += bytes_per_block) {
         encode_block(encoded_stream, input_string, index);
     } 
 
