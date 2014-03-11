@@ -2,25 +2,36 @@
 #define __ERROR_H__
 
 #include <exception>
+#include <string>
+#include <vector>
 
-class error : public std::exception {
+class error_detail : public std::exception {
     public:
-    error(const char* _message = "", const error* _nested_error = 0) throw() :
-    message(_message),
-    nested_error(_nested_error)
-    {
-    }
+    error_detail(const char* msg = "") throw();
+    virtual ~error_detail() throw() {}
 
-    virtual ~error() throw() {}
-
-    virtual const char* what() throw() { return message; }
-
-    bool has_nested() throw() { return (nested_error != 0); }
-    const error* get_nested_error() throw() { return nested_error; }
+    virtual const char* what() const throw();
+    error_detail& set_message(const char*) throw();
+    const std::vector<std::string>& get_args() const throw();
+    error_detail& add_arg(const std::string& arg) throw();
 
     private:
-    const char* message;
-    const error* nested_error;
+    std::string message;
+    std::vector<std::string> args; 
+};
+
+class error : public error_detail {
+    error(const char* msg = "") throw();
+    error(const char*, const error&) throw();
+    virtual ~error() throw() {}
+
+    virtual const char* what() const throw();
+
+    protected:
+    const std::vector<error_detail>& get_errors() const throw();
+
+    private:
+    std::vector<error_detail> errors;
 };
 
 #endif
