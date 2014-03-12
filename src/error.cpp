@@ -1,42 +1,66 @@
 #include <error.h>
+#include <sstream>
 
-using namespace std;
+namespace app {
 
-error_detail::error_detail(const char* msg) throw() :
-    message(msg)
+error::error() throw() :
+std::exception(),
+boost::exception()
 {
 }
 
-const char* error_detail::what() const throw() {
-    return message.c_str();
+error::error(const std::string& msg) throw() :
+std::exception(),
+boost::exception()
+{
+    (*this) << app::error::message(msg);
 }
 
-error_detail& error_detail::set_message(const char* msg) throw() {
-    message = msg;
+const char* error::what() const throw() {
+    const std::string* error_message = boost::get_error_info<app::error::message>(*this);
+
+    if(error_message != 0) {
+        return error_message->c_str();
+    } else {
+        return "Error!";
+    }
+}
+
+error_chain::error_chain() throw() :
+error()
+{
+}
+
+error_chain::error_chain(const error& err) throw() :
+error()
+{
+chain.push_back(err);
+}
+
+error_chain::error_chain(const error_chain& other) throw() :
+error(other),
+chain(other.chain)
+{
+}
+
+error_chain& error_chain::operator=(const error_chain& other) throw() {
+    if(this == &other) return *this;
+
+    error::operator=(other);
+    chain = other.chain;
+
     return *this;
 }
 
-const vector<string>& error_detail::get_args() const throw() { 
-    return args; 
+const char* error_chain::what() const throw() {
+    std::stringstream what_stream;
+
+    what_stream << error::what() << std::endl;
+    for(unsigned int i=0; i < chain.size(); i++) {
+        what_stream << "=> " << chain[i].what() << std::endl;
+    }
+
+    return what_stream.str().c_str();
 }
 
-error_detail& error_detail::add_arg(const string& arg) throw() {
-    args.push_back(arg);
-    return *this;
-}
-
-error::error(const char* msg) throw() :
-    error_detail(msg)
-{
-}
-
-error::error(const char* msg, const error& nested) throw() :
-    error_detail(msg),
-    errors(nested.get_errors())
-{
-    errors.push_back(nested);
-}
-
-const std::vector<error_detail>& error::get_errors() const throw() {
-    return errors;
 }

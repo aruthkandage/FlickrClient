@@ -4,34 +4,39 @@
 #include <exception>
 #include <string>
 #include <vector>
+#include <boost/exception/exception.hpp>
+#include <boost/exception/info.hpp>
+#include <boost/exception/get_error_info.hpp>
 
-class error_detail : public std::exception {
-    public:
-    error_detail(const char* msg = "") throw();
-    virtual ~error_detail() throw() {}
+#define error_param(Type, Param) \
+typedef boost::error_info<struct error_tag_ ## Param, Type> Param 
 
-    virtual const char* what() const throw();
-    error_detail& set_message(const char*) throw();
-    const std::vector<std::string>& get_args() const throw();
-    error_detail& add_arg(const std::string& arg) throw();
+namespace app {
 
-    private:
-    std::string message;
-    std::vector<std::string> args; 
-};
+    class error : public std::exception, public boost::exception {
+        public:
+        error() throw();
+        error(const std::string&) throw();
+        virtual ~error() throw() {}
 
-class error : public error_detail {
-    error(const char* msg = "") throw();
-    error(const char*, const error&) throw();
-    virtual ~error() throw() {}
+        virtual const char* what() const throw();
 
-    virtual const char* what() const throw();
+        error_param(std::string, message);
+    };
 
-    protected:
-    const std::vector<error_detail>& get_errors() const throw();
+    class error_chain : public error {
+        public:
+        error_chain() throw();
+        error_chain(const error&) throw();
+        error_chain(const error_chain&) throw();
+        error_chain& operator=(const error_chain&) throw(); 
+        virtual ~error_chain() throw() {}
 
-    private:
-    std::vector<error_detail> errors;
-};
+        virtual const char* what() const throw();
+
+        private:
+        std::vector<error> chain;
+    };
+}
 
 #endif
