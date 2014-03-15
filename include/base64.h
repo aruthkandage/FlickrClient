@@ -10,7 +10,7 @@ class base64 {
     base64();
     base64(std::istream&, std::ostream&);
 
-    std::string encode(const std::string&) throw(error);
+    std::string encode(const std::string&) throw(app::error);
 
     private: // methods
     void encode_block(std::ostream&, const unsigned char*);

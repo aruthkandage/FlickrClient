@@ -14,3 +14,6 @@
 
 # Output directory for executables
 bin/*
+
+# Output directory for Qt moc
+src/moc/*

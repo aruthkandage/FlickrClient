@@ -1,32 +1,47 @@
-TOP = . ;
 BINDIR = bin ;
 OBJDIR = obj ;
+QTDIR = /opt/Qt/5.2.1/gcc ;
+QTBINDIR = $(QTDIR)/bin ;
 
 INCDIRS = 
 include
 /usr/include
-/usr/include/libxml2 
+$(QTDIR)/include
+$(QTDIR)/include/QtCore
+$(QTDIR)/include/QtGui
 ;
 
 SRCDIRS =
 src
+src/moc
+;
+
+MOCDIR =
+src/moc
 ;
 
 LIBDIRS = 
 lib
 /usr/lib 
+$(QTDIR)/lib
 ;
 
 CC = gcc ;
 C++ = g++ ;
+MOC = $(QTBINDIR)/moc ;
 LINK = g++ ;
 
 LINKLIBDIRS = -L$(LIBDIRS) ;
+
+rule get {
+    return $(1) ;
+}
 
 rule set_libs {
     LINKLIBS on $(1) = -l$(2) ;
 }
 
+# $(1) => .cpp file
 rule compile {
     local _obj ;
 
@@ -36,7 +51,11 @@ rule compile {
 	Object $(_obj) : $(1) ;
 
     SEARCH on $(1) = $(SRCDIRS) ;
-    CCHDRS on $(_obj) = [ FIncludes $(INCDIRS) ] ;
+    CCHDRS on $(_obj) = [ FIncludes $(INCDIRS) [ on $(1) get $(INCDIRS) ]  ] ;
+    C++FLAGS on $(_obj) += [ on $(1) get $(C++FLAGS) ] ;
+
+    # Needed by Qt
+    C++FLAGS on $(_obj) += -fPIC ;
 
     if $(DEBUG) {
         C++FLAGS on $(_obj) += -g ;
@@ -47,30 +66,81 @@ rule compile {
 	MakeLocate $(_obj) : $(OBJDIR) ;
 }
 
-rule compile_sources {
+actions generate_moc {
+    $(MOC) -I$(INCDIRS) -o $(1) $(2)
+}
+
+# $(1) => .cpp file (becomes moc_$(1).cpp)
+rule compile_qt {
+    local _mocsrc ;
+    local _hdr ;
+    local _mocobj ;
+
+    _mocsrc = moc_$(1) ;
+    _hdr = $(1:S=.h) ;
+    _mocobj = $(_mocsrc:S=.o) ;
+
+    Depends $(_mocobj) : $(_mocsrc) ;
+    Depends $(_mocsrc) : $(_hdr) ;
+    Clean clean : $(_mocsrc) ;
+
+    LOCATE on $(_mocsrc) = $(MOCDIR) ;
+    LOCATE on $(_hdr) = $(INCDIRS) ;
+    SEARCH on $(_hdr) = $(INCDIRS) ;
+
+    generate_moc $(_mocsrc) : $(_hdr) ;
+    compile $(_mocsrc) ;
+    compile $(1) ;
+}
+
+rule executable_sources {
 	local _src ;
 
-	for _src in $(1)
+    OBJECTS on $(1) += $(2:S=.o) ;
+    Depends $(1) : $(2:S=.o) ;  
+	for _src in $(2)
 	{
-		compile $(_src) ;
+        compile $(_src) ;
 	}	
 }
 
+rule executable_qt_sources {
+    local _src ;
+    local _objs ;
+    local _moc_objs ;
+
+    _objs = $(2:S=.o) ;
+    _moc_objs = $(_objs) ;
+    _moc_objs = moc_$(_moc_objs) ;
+    
+    OBJECTS on $(1) += $(_objs) ;
+    MOC_OBJECTS on $(1) += $(_moc_objs) ;
+    Depends $(1) : $(_objs) ;
+    Depends $(1) : $(_moc_objs) ;
+
+    for _src in $(2)
+    {
+        compile_qt $(_src) ;
+    }
+}
+
 rule executable {
-	Depends $(1) : $(2:S=.o) ;
+    local _exe_objs ;
+
+    _exe_objs = [ on $(1) get $(OBJECTS) ] ;
+    _exe_objs += [ on $(1) get $(MOC_OBJECTS) ] ;
+
 	Clean clean : $(1) ; 
 	LOCATE on $(1) = $(BINDIR) ;
-	compile_sources $(2) ;
-	link_executable $(1) : $(2:S=.o) ;
+	link_executable $(1) : $(_exe_objs) ;
 }
 
 actions link_executable {
 	$(LINK) -o $(1:D=$(LOCATE)) $(2:D=$(OBJDIR)) $(LINKLIBDIRS) $(LINKLIBS) ;
 }
 
-executable boost-asio-1 : boost-asio-1.cpp ;
-set_libs boost-asio-1 : boost_system boost_thread dl pthread xml2 ;
+executable_sources base64_test : base64.cpp base64_test.cpp error.cpp ;
+executable base64_test ;
 
-executable base64_test : base64.cpp base64_test.cpp ;
-
-executable error_test : error.cpp error_test.cpp ;
+executable_sources error_test : error.cpp error_test.cpp ;
+executable error_test ;

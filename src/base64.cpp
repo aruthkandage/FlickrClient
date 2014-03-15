@@ -25,7 +25,7 @@ out(&_out)
 {
 }
 
-std::string base64::encode(const string& input_string) throw(error) {
+std::string base64::encode(const string& input_string) throw(app::error) {
     return encode_all(input_string);
 }
 
@@ -38,7 +38,7 @@ void base64::encode_block(ostream& encoded_stream, const unsigned char* block) {
 
     // All output operations should have succeeded
     if(encoded_stream.fail()) {
-        throw error("base64: ostream failure");
+        throw app::error("base64: ostream failure");
     }
 }
 
@@ -74,7 +74,7 @@ void base64::encode_remaining(ostream& encoded_stream, const unsigned char* rema
 
     // All output operations should have succeeded
     if(encoded_stream.fail()) {
-        throw error("base64: ostream failure");
+        throw app::error("base64: ostream failure");
     }
 }
 
@@ -110,7 +110,7 @@ void base64::encode_all() {
 
     if(in->fail()) {
         // something went wrong in underlying stream
-        throw error("base64: istream failure");
+        throw app::error("base64: istream failure");
     }
 
     if(bytes_to_encode > 0) {
