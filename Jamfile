@@ -14,6 +14,7 @@ $(QTDIR)/include/QtGui
 SRCDIRS =
 src
 src/moc
+src/test
 ;
 
 MOCDIR =
@@ -140,8 +141,6 @@ actions link_executable {
 	$(LINK) -o $(1:D=$(LOCATE)) $(2:D=$(OBJDIR)) $(LINKLIBDIRS) $(LINKLIBS) ;
 }
 
-executable_sources base64_test : base64.cpp base64_test.cpp error.cpp ;
-executable base64_test ;
-
-executable_sources error_test : error.cpp error_test.cpp ;
-executable error_test ;
+executable_sources hmac_test : hmac_test.cpp hmac.cpp ;
+executable hmac_test ;
+set_libs hmac_test : Qt5Core ; 
