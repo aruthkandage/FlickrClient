@@ -47,10 +47,11 @@ rule compile {
 
     _obj = $(1:S=.o) ;
 
-	Depends $(_obj) : $(1) ;
-	Object $(_obj) : $(1) ;
+    Depends $(_obj) : $(1) ;
+    Object $(_obj) : $(1) ;
 
     SEARCH on $(1) = $(SRCDIRS) ;
+    HDRSEARCH on $(1) = $(INCDIRS) ;
     CCHDRS on $(_obj) = [ FIncludes $(INCDIRS) [ on $(1) get $(INCDIRS) ]  ] ;
     C++FLAGS on $(_obj) += [ on $(1) get $(C++FLAGS) ] ;
 
