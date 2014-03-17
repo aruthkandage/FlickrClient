@@ -17,3 +17,6 @@ bin/*
 
 # Output directory for Qt moc
 src/moc/*
+
+# Application API Key
+APIKey
