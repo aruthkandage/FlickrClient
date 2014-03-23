@@ -6,49 +6,63 @@
  *
  */
 
+#include <QByteArray>
 #include <QString>
 #include <QMap>
-#include <QNetworkRequest>
+#include <QUrl>
 
-class FlickrRequest : public QNetworkRequest {
+namespace app {
+
+class FlickrRequest {
     public:
-    FlickrRequest(QString&);
-    FlickrRequest(QString&, HTTPVerb);
-
     enum HTTPVerb {
         GET,
         POST
     };
 
-    public void setHTTPVerb(HTTPVerb verb) {
-        this->httpVerb = verb;
-    }
-    public HTTPVerb getHTTPVerb() const {
-        return httpVerb;
-    }
-    public void setUrl(const QString& url) {
-        this->url = url;
-    }
-    public const QString& getUrl() const {
-        return url;
-    }
+    FlickrRequest(const QString&);
+    FlickrRequest(const QString&, const QByteArray&, const QByteArray&);
+    FlickrRequest(const QString&, const QByteArray&, const QByteArray&, HTTPVerb);
+    virtual ~FlickrRequest();
 
-    public const QString& getSignature();
+    void setHTTPVerb(HTTPVerb verb);
+    HTTPVerb getHTTPVerb() const;
+
+    const QByteArray& getKey() const;
+    const QByteArray& getSecret() const;
+
+    void setKey(const QByteArray& key);
+    void setSecret(const QByteArray& secret);
+
+    void addRequestParam(const QString&, const QString&, bool includeInSignature = true, bool percentEncodeParamName = false);
+    bool removeRequestParam(const QString&);
+    const QByteArray& getSignature(bool regenerate = false);
+    QUrl toUrl();
 
     protected:
-    struct RequestParam {
-        QString value;
+    struct EncodedRequestParam {
+        QByteArray value;
         bool includeInSignature;
-    };    
+    }; 
 
-    private:
+    virtual bool signatureIsValid();
+    
+    private: // methods
+    void appendParamList(QByteArray&, bool onlySignatureParams = false);
+    void generateQuery();
+    void generateSignature();
+
+    private: // data members
     HTTPVerb httpVerb;
     QString url;
-    QMap<QString, RequestParam> requestParams;
+    QByteArray query;
+    QByteArray key;
+    QByteArray secret;
+    QMap<QByteArray, EncodedRequestParam> encodedRequestParams;
 
-    bool signatureGenerated;
-    qint64 signatureTimestamp;
-    QString signature;
+    QByteArray signature;
 }; 
+
+} // end namespace app
 
 #endif
