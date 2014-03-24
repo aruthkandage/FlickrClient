@@ -37,7 +37,7 @@ class FlickrRequest {
     void addRequestParam(const QString&, const QString&, bool includeInSignature = true, bool percentEncodeParamName = false);
     bool removeRequestParam(const QString&);
     const QByteArray& getSignature(bool regenerate = false);
-    QUrl toUrl();
+    virtual QUrl toUrl();
 
     protected:
     struct EncodedRequestParam {
@@ -45,8 +45,6 @@ class FlickrRequest {
         bool includeInSignature;
     }; 
 
-    virtual bool signatureIsValid();
-    
     private: // methods
     void appendParamList(QByteArray&, bool onlySignatureParams = false);
     void generateQuery();

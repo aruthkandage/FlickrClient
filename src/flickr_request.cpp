@@ -143,7 +143,7 @@ void FlickrRequest::generateSignature() {
     signingKey.push_back('&');
     signingKey.append(secret);
 
-    signature = HMAC::sha1(signingKey, signatureBase);
+    signature = HMAC::sha1(signingKey, signatureBase).toBase64();
 }
 
 } // end namespace app
