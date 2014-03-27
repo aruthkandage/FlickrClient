@@ -141,7 +141,9 @@ actions link_executable {
 	$(LINK) -o $(1:D=$(LOCATE)) $(2:D=$(OBJDIR)) $(LINKLIBDIRS) $(LINKLIBS) ;
 }
 
-compile flickr_request.cpp ;
+executable_sources flickr_request_test : flickr_request.cpp flickr_request_test.cpp ;
+executable flickr_request_test ;
+set_libs flickr_request_test : Qt5Core ; 
 
 executable_sources hmac_test : hmac_test.cpp hmac.cpp ;
 executable hmac_test ;

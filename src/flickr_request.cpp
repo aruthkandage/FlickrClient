@@ -3,81 +3,67 @@
 
 namespace app {
 
-FlickrRequest::FlickrRequest(const QString& url) :
+FlickrRequestBase::FlickrRequestBase(const QString& url) :
 url(url)
 {
 }
 
-FlickrRequest::FlickrRequest(const QString& url, const QByteArray& key, const QByteArray& secret) :
+FlickrRequestBase::FlickrRequestBase(const QString& url, const QByteArray& key, const QByteArray& secret) :
 url(url),
 key(key),
 secret(secret)
 {
 }
 
-FlickrRequest::FlickrRequest(const QString& url, const QByteArray& key, const QByteArray& secret, FlickrRequest::HTTPVerb httpVerb) :
-url(url),
-key(key),
-secret(secret),
-httpVerb(httpVerb)
+FlickrRequestBase::~FlickrRequestBase()
 {
 }
 
-FlickrRequest::~FlickrRequest()
-{
-}
-
-void FlickrRequest::setHTTPVerb(HTTPVerb verb) {
-    this->httpVerb = verb;
-}
-
-FlickrRequest::HTTPVerb FlickrRequest::getHTTPVerb() const {
-    return httpVerb;
-}
-
-const QByteArray& FlickrRequest::getKey() const {
+const QByteArray& FlickrRequestBase::getKey() const {
     return key;
 }
 
-const QByteArray& FlickrRequest::getSecret() const {
+const QByteArray& FlickrRequestBase::getSecret() const {
     return secret;
 }
 
-void FlickrRequest::setKey(const QByteArray& key) {
+void FlickrRequestBase::setKey(const QByteArray& key) {
     this->key = key;
 }
 
-void FlickrRequest::setSecret(const QByteArray& secret) {
+void FlickrRequestBase::setSecret(const QByteArray& secret) {
     this->secret = secret;
 }
 
-void FlickrRequest::addRequestParam(const QString& paramName, const QString& paramValue, bool includeInSignature, bool percentEncodeParamName) {
+void FlickrRequestBase::addRequestParam(const QString& paramName, const QString& paramValue, bool includeInSignature) {
     EncodedRequestParam encodedRequestParam;
-    // Note: this is a small optimization in case you know percent encoding is not required
-    // for the given param name -- param names should always be valid percent encoded strings
-    QByteArray paramNameEncoded = percentEncodeParamName ? paramName.toUtf8().toPercentEncoding() : paramName.toUtf8();
+    QByteArray paramNameEncoded = paramName.toUtf8().toPercentEncoding();
 
     encodedRequestParam.value = paramValue.toUtf8().toPercentEncoding();
     encodedRequestParam.includeInSignature = includeInSignature;
 
     encodedRequestParams.insert(paramNameEncoded, encodedRequestParam);
 
-    query.clear();
-    signature.clear();
+    // signature must be regenerated when needed
+    if(!signature.isEmpty()) {
+        signature.clear();
+    }
 }
 
-bool FlickrRequest::removeRequestParam(const QString& paramName) {
+bool FlickrRequestBase::removeRequestParam(const QString& paramName) {
     QByteArray paramNameEncoded = paramName.toUtf8().toPercentEncoding();
     
     int numRemoved = encodedRequestParams.remove(paramNameEncoded);
 
-    query.clear();
-    signature.clear();
+    // signature must be regenerated when needed
+    if(!signature.isEmpty()) {
+        signature.clear();
+    }
 
     return numRemoved == 1;
 }
 
-const QByteArray& FlickrRequest::getSignature(bool regenerate) {
+const QByteArray& FlickrRequestBase::getSignature(bool regenerate) {
     if(signature.isEmpty() || regenerate) {
         generateSignature();
     }
@@ -85,7 +71,13 @@ const QByteArray& FlickrRequest::getSignature(bool regenerate) {
     return signature;
 }
 
-void FlickrRequest::appendParamList(QByteArray& queryRef, bool onlySignatureParams) {
+/*
+ * Generate a string from the parameters as such
+ * param_1=value_1&param_2=value_2&...&param_n=value_n
+ */
+QByteArray FlickrRequestBase::generateParamListString(bool onlySignatureParams) {
+    QByteArray paramList;
+
     for(QMap<QByteArray, EncodedRequestParam>::iterator param = encodedRequestParams.begin();
         param != encodedRequestParams.end();
         param++) {
@@ -93,41 +85,34 @@ void FlickrRequest::appendParamList(QByteArray& queryRef, bool onlySignaturePara
         EncodedRequestParam encodedRequestParam = param.value();
 
         if(!onlySignatureParams || encodedRequestParam.includeInSignature) {
-            queryRef.append(param.key());
-            queryRef.push_back('=');
-            queryRef.append(encodedRequestParam.value);
+            paramList.append(param.key());
+            paramList.push_back('=');
+            paramList.append(encodedRequestParam.value);
         }
         
         if(param + 1 != encodedRequestParams.end()) {
-            queryRef.push_back('&');
+            paramList.push_back('&');
         }
     }
+
+    return paramList;
 }
 
-void FlickrRequest::generateQuery() {
-    if(!query.isEmpty()) query.clear();
-
-    query.push_back('?');
-    appendParamList(query);
+/*
+ * Required for generation of the signature
+ * default to GET
+ */
+const char* getHTTPVerb() {
+    return "GET";
 }
 
-void FlickrRequest::generateSignature() {
+void FlickrRequestBase::generateSignature() {
     QByteArray signingKey;
     QByteArray signatureBase;
     QByteArray parameterString;
 
     // start with the HTTP verb
-    switch(httpVerb) {
-        case GET:
-            signatureBase.append("GET");
-            break;
-        case POST:
-            signatureBase.append("POST");
-            break;
-        default:
-            signatureBase.append("GET");
-            break;
-    }
+    signatureBase.append(getHTTPVerb());
     signatureBase.push_back('&');
 
     // then add the percent encoded url
@@ -135,8 +120,7 @@ void FlickrRequest::generateSignature() {
     signatureBase.push_back('&');
 
     // generate the parameter string
-    appendParamList(parameterString, /* onlySignatureParams = */ true);
-    signatureBase.append(parameterString.toPercentEncoding());
+    signatureBase.append(generateParamListString(/* onlySignatureParams= */ true));
 
     // put the key and secret together to build the signing key
     signingKey.append(key);

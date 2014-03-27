@@ -13,20 +13,11 @@
 
 namespace app {
 
-class FlickrRequest {
+class FlickrRequestBase {
     public:
-    enum HTTPVerb {
-        GET,
-        POST
-    };
-
-    FlickrRequest(const QString&);
-    FlickrRequest(const QString&, const QByteArray&, const QByteArray&);
-    FlickrRequest(const QString&, const QByteArray&, const QByteArray&, HTTPVerb);
-    virtual ~FlickrRequest();
-
-    void setHTTPVerb(HTTPVerb verb);
-    HTTPVerb getHTTPVerb() const;
+    FlickrRequestBase(const QString&);
+    FlickrRequestBase(const QString&, const QByteArray&, const QByteArray&);
+    virtual ~FlickrRequestBase();
 
     const QByteArray& getKey() const;
     const QByteArray& getSecret() const;
@@ -34,10 +25,9 @@ class FlickrRequest {
     void setKey(const QByteArray& key);
     void setSecret(const QByteArray& secret);
 
-    void addRequestParam(const QString&, const QString&, bool includeInSignature = true, bool percentEncodeParamName = false);
+    void addRequestParam(const QString&, const QString&, bool includeInSignature = true);
     bool removeRequestParam(const QString&);
     const QByteArray& getSignature(bool regenerate = false);
-    virtual QUrl toUrl();
 
     protected:
     struct EncodedRequestParam {
@@ -45,15 +35,14 @@ class FlickrRequest {
         bool includeInSignature;
     }; 
 
+    virtual const char* getHTTPVerb();
+
     private: // methods
-    void appendParamList(QByteArray&, bool onlySignatureParams = false);
-    void generateQuery();
     void generateSignature();
+    QByteArray generateParamListString(bool);
 
     private: // data members
-    HTTPVerb httpVerb;
     QString url;
-    QByteArray query;
     QByteArray key;
     QByteArray secret;
     QMap<QByteArray, EncodedRequestParam> encodedRequestParams;
