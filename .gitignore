@@ -19,4 +19,5 @@ bin/*
 src/moc/*
 
 # Application API Key
+src/flickr_api_key.cpp
 APIKey

@@ -1,7 +1,14 @@
 #include <flickr_request.h>
 #include <hmac.h>
 
+#include <QDateTime>
+
 namespace app {
+
+/* 
+ * The nonce (for oauth) is 32 random bytes which are base64 encoded 
+ */
+static const unsigned int NONCE_BYTES = 32;
 
 FlickrRequestBase::FlickrRequestBase(const QString& url) :
 url(url)
@@ -43,24 +50,49 @@ void FlickrRequestBase::addRequestParam(const QString& paramName, const QString&
     encodedRequestParam.includeInSignature = includeInSignature;
 
     encodedRequestParams.insert(paramNameEncoded, encodedRequestParam);
-
-    // signature must be regenerated when needed
-    if(!signature.isEmpty()) {
-        signature.clear();
+    if(includeInSignature) {
+        clearSignature();
     }
 }
 
-bool FlickrRequestBase::removeRequestParam(const QString& paramName) {
-    QByteArray paramNameEncoded = paramName.toUtf8().toPercentEncoding();
-    
-    int numRemoved = encodedRequestParams.remove(paramNameEncoded);
+void FlickrRequestBase::addEncodedRequestParam(const QByteArray& paramName, const QByteArray& paramValue, bool includeInSignature) {
+    EncodedRequestParam encodedRequestParam;
 
+    encodedRequestParam.value = paramValue;
+    encodedRequestParam.includeInSignature = includeInSignature;
+
+    encodedRequestParams.insert(paramName, encodedRequestParam);
+    if(includeInSignature) {
+        clearSignature();
+    }
+}
+
+bool FlickrRequestBase::removeEncodedRequestParam(const QByteArray& paramNameEncoded) {
+    EncodedRequestParamMapIter iter = encodedRequestParams.find(paramNameEncoded);
+
+    if(iter == encodedRequestParams.end()) {
+        return false;
+    }
+
+    EncodedRequestParam& encodedRequestParam = *iter;
+    encodedRequestParams.remove(paramNameEncoded);
+
+    if(encodedRequestParam.includeInSignature) {
+        clearSignature();
+    }
+
+    return true;
+}
+
+bool FlickrRequestBase::removeRequestParam(const QString& paramName) {
+    removeEncodedRequestParam(paramName.toUtf8().toBase64());
+}
+
+void FlickrRequestBase::clearSignature() {
     // signature must be regenerated when needed
     if(!signature.isEmpty()) {
         signature.clear();
     }
-
-    return numRemoved == 1;
 }
 
 const QByteArray& FlickrRequestBase::getSignature(bool regenerate) {
@@ -69,6 +101,23 @@ const QByteArray& FlickrRequestBase::getSignature(bool regenerate) {
     }
 
     return signature;
+}
+
+const QByteArray& FlickrRequestBase::getNonce(bool regenerate) {
+    if(signature.isEmpty() || regenerate) {
+        generateNonce();
+    }
+
+    return nonce;
+}
+
+void FlickrRequestBase::updateTimeStamp() {
+    timeStamp = QDateTime::currentMSecsSinceEpoch();
+    clearSignature();
+}
+
+FlickrRequestBase::TimeStamp FlickrRequestBase::getTimeStamp() const {
+    return timeStamp;
 }
 
 /*
@@ -102,7 +151,7 @@ QByteArray FlickrRequestBase::generateParamListString(bool onlySignatureParams) 
  * Required for generation of the signature
  * default to GET
  */
-const char* getHTTPVerb() {
+const char* FlickrRequestBase::getHTTPVerb() {
     return "GET";
 }
 
@@ -128,6 +177,20 @@ void FlickrRequestBase::generateSignature() {
     signingKey.append(secret);
 
     signature = HMAC::sha1(signingKey, signatureBase).toBase64();
+}
+
+/*
+ * Generate a random string of NONCE_BYTES, then base64 encode it
+ */
+void FlickrRequestBase::generateNonce() {
+    QByteArray nonceBytes(NONCE_BYTES, 0);
+
+    for(int i=0; i < NONCE_BYTES; i++) {
+        unsigned char byte = (unsigned char) qrand();
+        nonceBytes[i] = byte;
+    }
+
+    nonce = nonceBytes.toBase64();
 }
 
 } // end namespace app

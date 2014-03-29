@@ -14,7 +14,19 @@
 namespace app {
 
 class FlickrRequestBase {
-    public:
+    protected: // types
+    struct EncodedRequestParam {
+        QByteArray value;
+        bool includeInSignature;
+    }; 
+
+    typedef QMap<QByteArray, EncodedRequestParam> EncodedRequestParamMap; 
+    typedef QMap<QByteArray, EncodedRequestParam>::iterator EncodedRequestParamMapIter;
+
+    public: // types
+    typedef qint64 TimeStamp;
+
+    public: // methods
     FlickrRequestBase(const QString&);
     FlickrRequestBase(const QString&, const QByteArray&, const QByteArray&);
     virtual ~FlickrRequestBase();
@@ -26,26 +38,31 @@ class FlickrRequestBase {
     void setSecret(const QByteArray& secret);
 
     void addRequestParam(const QString&, const QString&, bool includeInSignature = true);
+    void addEncodedRequestParam(const QByteArray&, const QByteArray&, bool includeInSignature = true);
     bool removeRequestParam(const QString&);
+    bool removeEncodedRequestParam(const QByteArray&);
+    void clearSignature();
     const QByteArray& getSignature(bool regenerate = false);
+    const QByteArray& getNonce(bool regenerate = false);
 
-    protected:
-    struct EncodedRequestParam {
-        QByteArray value;
-        bool includeInSignature;
-    }; 
+    void updateTimeStamp();
+    TimeStamp getTimeStamp() const;
 
+    protected: // methods
     virtual const char* getHTTPVerb();
 
     private: // methods
     void generateSignature();
+    void generateNonce();
     QByteArray generateParamListString(bool);
 
     private: // data members
     QString url;
     QByteArray key;
     QByteArray secret;
-    QMap<QByteArray, EncodedRequestParam> encodedRequestParams;
+    QByteArray nonce;
+    EncodedRequestParamMap encodedRequestParams;
+    TimeStamp timeStamp;
 
     QByteArray signature;
 }; 

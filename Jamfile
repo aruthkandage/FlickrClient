@@ -63,6 +63,8 @@ rule compile {
         C++FLAGS on $(_obj) += -g ;
     } else {
         CCDEFS on $(_obj) += [ FDefines NDEBUG ] ;
+        CCDEFS on $(_obj) += [ FDefines QT_NO_DEBUG_OUTPUT ] ;
+        CCDEFS on $(_obj) += [ FDefines QT_NO_WARNING_OUTPUT ] ;
     }
 
 	MakeLocate $(_obj) : $(OBJDIR) ;
@@ -141,7 +143,7 @@ actions link_executable {
 	$(LINK) -o $(1:D=$(LOCATE)) $(2:D=$(OBJDIR)) $(LINKLIBDIRS) $(LINKLIBS) ;
 }
 
-executable_sources flickr_request_test : flickr_request.cpp flickr_request_test.cpp ;
+executable_sources flickr_request_test : flickr_request.cpp flickr_request_test.cpp hmac.cpp ;
 executable flickr_request_test ;
 set_libs flickr_request_test : Qt5Core ; 
 
