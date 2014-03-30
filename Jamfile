@@ -149,7 +149,7 @@ actions link_executable {
 executable_qt_sources flickr_request_test : flickr_request.cpp ;
 executable_sources flickr_request_test : flickr_request_test.cpp hmac.cpp ;
 executable flickr_request_test ;
-set_libs flickr_request_test : Qt5Core ; 
+set_libs flickr_request_test : Qt5Core Qt5Network ; 
 
 executable_sources hmac_test : hmac_test.cpp hmac.cpp ;
 executable hmac_test ;

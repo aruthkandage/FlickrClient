@@ -14,10 +14,29 @@ namespace app {
  */
 static const char* DEFAULT_HTTP_VERB = "GET";
 
-/* 
- * The nonce (for oauth) is 32 random bytes which are base64 encoded 
+/*
+ * Generate signatures using HMAC-SHA1 encryption
  */
-static const unsigned int NONCE_BYTES = 32;
+static const char* DEFAULT_SIGNATURE_METHOD = "HMAC-SHA1";
+
+
+/*
+ * Eligible characters for the nonce (alphanumeric)
+ */
+static const char NONCE_CHARS[] = {
+'a','b','c','d','e','f','g','h','i','j','k','l',
+'m','n','o','p','q','r','s','t','u','v','w','x',
+'y','z','A','B','C','D','E','F','G','H','I','J',
+'K','L','M','N','O','P','Q','R','S','T','U','V',
+'W','X','Y','Z','0','1','2','3','4','5','6','7',
+'8','9'};
+
+static const unsigned int NUM_NONCE_CHARS = 62;
+
+/* 
+ * Length of the nonce (for oauth) 
+ */
+static const unsigned int NONCE_LENGTH = 32;
 
 FlickrRequestBase::FlickrRequestBase(const QString& url, QObject* parent) :
 QObject(parent),
@@ -25,11 +44,11 @@ url(url)
 {
 }
 
-FlickrRequestBase::FlickrRequestBase(const QString& url, const QByteArray& key, const QByteArray& secret, QObject* parent) :
+FlickrRequestBase::FlickrRequestBase(const QString& url, const QByteArray& consumerSecret, const QByteArray& tokenSecret, QObject* parent) :
 QObject(parent),
 url(url),
-key(key),
-secret(secret)
+consumerSecret(consumerSecret),
+tokenSecret(tokenSecret)
 {
 }
 
@@ -41,20 +60,20 @@ const QString& FlickrRequestBase::getUrl() const {
     return url;
 }
 
-const QByteArray& FlickrRequestBase::getKey() const {
-    return key;
+const QByteArray& FlickrRequestBase::getConsumerSecret() const {
+    return consumerSecret;
 }
 
-const QByteArray& FlickrRequestBase::getSecret() const {
-    return secret;
+const QByteArray& FlickrRequestBase::getTokenSecret() const {
+    return tokenSecret;
 }
 
-void FlickrRequestBase::setKey(const QByteArray& key) {
-    this->key = key;
+void FlickrRequestBase::setConsumerSecret(const QByteArray& secret) {
+    consumerSecret = secret;
 }
 
-void FlickrRequestBase::setSecret(const QByteArray& secret) {
-    this->secret = secret;
+void FlickrRequestBase::setTokenSecret(const QByteArray& secret) {
+    tokenSecret = secret;
 }
 
 void FlickrRequestBase::addRequestParam(const QString& paramName, const QString& paramValue, bool includeInSignature) {
@@ -162,14 +181,21 @@ QByteArray FlickrRequestBase::generateParamListString(bool onlySignatureParams) 
     return paramList;
 }
 
+const char* FlickrRequestBase::getSignatureMethod() const {
+    return DEFAULT_SIGNATURE_METHOD;
+}
+
 /*
  * Required for generation of the signature
  * default to GET
  */
-const char* FlickrRequestBase::getHTTPVerb() {
+const char* FlickrRequestBase::getHTTPVerb() const {
     return DEFAULT_HTTP_VERB;
 }
 
+/*
+ * Generates a HMAC-SHA1 signature according to OAuth spec
+ */
 void FlickrRequestBase::generateSignature() {
     QByteArray signingKey;
     QByteArray signatureBase;
@@ -186,10 +212,10 @@ void FlickrRequestBase::generateSignature() {
     // generate the parameter string
     signatureBase.append(generateParamListString(/* onlySignatureParams= */ true));
 
-    // put the key and secret together to build the signing key
-    signingKey.append(key);
+    // put the consumer secret and token secret together to build the signing key
+    signingKey.append(consumerSecret);
     signingKey.push_back('&');
-    signingKey.append(secret);
+    signingKey.append(tokenSecret);
 
     signature = HMAC::sha1(signingKey, signatureBase).toBase64();
 }
@@ -198,14 +224,14 @@ void FlickrRequestBase::generateSignature() {
  * Generate a random string of NONCE_BYTES, then base64 encode it
  */
 void FlickrRequestBase::generateNonce() {
-    QByteArray nonceBytes(NONCE_BYTES, 0);
+    QByteArray nonceBytes(NONCE_LENGTH, 0);
 
-    for(int i=0; i < NONCE_BYTES; i++) {
-        unsigned char byte = (unsigned char) qrand();
+    for(int i=0; i < NONCE_LENGTH; i++) {
+        char byte = NONCE_CHARS[((unsigned int) qrand()) % NUM_NONCE_CHARS]; 
         nonceBytes[i] = byte;
     }
 
-    nonce = nonceBytes.toBase64();
+    nonce = nonceBytes;
 }
 
 FlickrGetRequest::FlickrGetRequest(const QString& url, QObject* parent) :
@@ -213,8 +239,8 @@ FlickrRequestBase(url, parent)
 {
 }
 
-FlickrGetRequest::FlickrGetRequest(const QString& url, const QByteArray& key, const QByteArray& secret, QObject* parent) :
-FlickrRequestBase(url, key, secret, parent)
+FlickrGetRequest::FlickrGetRequest(const QString& url, const QByteArray& consumerSecret, const QByteArray& tokenSecret, QObject* parent) :
+FlickrRequestBase(url, consumerSecret, tokenSecret, parent)
 {
 }
 
