@@ -2,20 +2,31 @@
 #include <hmac.h>
 
 #include <QDateTime>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QUrl>
 
 namespace app {
+
+/*
+ * Most Flickr requests are GET requests
+ */
+static const char* DEFAULT_HTTP_VERB = "GET";
 
 /* 
  * The nonce (for oauth) is 32 random bytes which are base64 encoded 
  */
 static const unsigned int NONCE_BYTES = 32;
 
-FlickrRequestBase::FlickrRequestBase(const QString& url) :
+FlickrRequestBase::FlickrRequestBase(const QString& url, QObject* parent) :
+QObject(parent),
 url(url)
 {
 }
 
-FlickrRequestBase::FlickrRequestBase(const QString& url, const QByteArray& key, const QByteArray& secret) :
+FlickrRequestBase::FlickrRequestBase(const QString& url, const QByteArray& key, const QByteArray& secret, QObject* parent) :
+QObject(parent),
 url(url),
 key(key),
 secret(secret)
@@ -24,6 +35,10 @@ secret(secret)
 
 FlickrRequestBase::~FlickrRequestBase()
 {
+}
+
+const QString& FlickrRequestBase::getUrl() const {
+    return url;
 }
 
 const QByteArray& FlickrRequestBase::getKey() const {
@@ -152,7 +167,7 @@ QByteArray FlickrRequestBase::generateParamListString(bool onlySignatureParams) 
  * default to GET
  */
 const char* FlickrRequestBase::getHTTPVerb() {
-    return "GET";
+    return DEFAULT_HTTP_VERB;
 }
 
 void FlickrRequestBase::generateSignature() {
@@ -191,6 +206,37 @@ void FlickrRequestBase::generateNonce() {
     }
 
     nonce = nonceBytes.toBase64();
+}
+
+FlickrGetRequest::FlickrGetRequest(const QString& url, QObject* parent) :
+FlickrRequestBase(url, parent)
+{
+}
+
+FlickrGetRequest::FlickrGetRequest(const QString& url, const QByteArray& key, const QByteArray& secret, QObject* parent) :
+FlickrRequestBase(url, key, secret, parent)
+{
+}
+
+QNetworkReply* FlickrGetRequest::send(QNetworkAccessManager& networkAccessMan) {
+    QUrl url(getUrl());    
+
+    // set the query string
+    QByteArray queryString;
+    queryString.push_back('?');
+    queryString.append(generateParamListString(/* onlySignatureParams = */ false));
+    
+    url.setQuery(queryString, QUrl::StrictMode);
+
+    if(url.isValid()) {
+        QNetworkRequest request(url);
+        // this object can be accessed from the QNetworkReply
+        request.setOriginatingObject(this);
+   
+        return networkAccessMan.get(request); 
+    }
+
+    return 0;
 }
 
 } // end namespace app

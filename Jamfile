@@ -9,6 +9,9 @@ include
 $(QTDIR)/include
 $(QTDIR)/include/QtCore
 $(QTDIR)/include/QtGui
+$(QTDIR)/include/QtNetwork
+$(QTDIR)/include/QtSql
+$(QTDIR)/include/QtWidgets
 ;
 
 SRCDIRS =
@@ -143,7 +146,8 @@ actions link_executable {
 	$(LINK) -o $(1:D=$(LOCATE)) $(2:D=$(OBJDIR)) $(LINKLIBDIRS) $(LINKLIBS) ;
 }
 
-executable_sources flickr_request_test : flickr_request.cpp flickr_request_test.cpp hmac.cpp ;
+executable_qt_sources flickr_request_test : flickr_request.cpp ;
+executable_sources flickr_request_test : flickr_request_test.cpp hmac.cpp ;
 executable flickr_request_test ;
 set_libs flickr_request_test : Qt5Core ; 
 

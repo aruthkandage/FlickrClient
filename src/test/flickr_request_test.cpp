@@ -4,7 +4,7 @@
 using namespace app;
 using namespace std;
 
-void test_signature() {
+/*void test_signature() {
     FlickrRequestBase request("https://api.flickr.com/services/rest");
 
     request.addRequestParam("nojsoncallback", "1");
@@ -21,8 +21,8 @@ void test_signature() {
     request.setSecret("a202d1f853ec69de");
     
     cout << request.getSignature().data() << endl;
-}
+}*/
 
 int main(int argc, char** argv) {
-    test_signature();
+    /* test_signature(); */
 }

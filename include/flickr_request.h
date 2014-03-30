@@ -6,14 +6,20 @@
  *
  */
 
+#include <QObject>
 #include <QByteArray>
 #include <QString>
 #include <QMap>
 #include <QUrl>
 
+class QNetworkAccessManager;
+class QNetworkReply;
+
 namespace app {
 
-class FlickrRequestBase {
+class FlickrRequestBase : public QObject {
+    Q_OBJECT
+
     protected: // types
     struct EncodedRequestParam {
         QByteArray value;
@@ -27,10 +33,11 @@ class FlickrRequestBase {
     typedef qint64 TimeStamp;
 
     public: // methods
-    FlickrRequestBase(const QString&);
-    FlickrRequestBase(const QString&, const QByteArray&, const QByteArray&);
+    FlickrRequestBase(const QString&, QObject* parent = 0);
+    FlickrRequestBase(const QString&, const QByteArray&, const QByteArray&, QObject* parent = 0);
     virtual ~FlickrRequestBase();
 
+    const QString& getUrl() const;
     const QByteArray& getKey() const;
     const QByteArray& getSecret() const;
 
@@ -48,13 +55,15 @@ class FlickrRequestBase {
     void updateTimeStamp();
     TimeStamp getTimeStamp() const;
 
+    virtual QNetworkReply* send(QNetworkAccessManager&) = 0;
+
     protected: // methods
     virtual const char* getHTTPVerb();
+    QByteArray generateParamListString(bool);
 
     private: // methods
     void generateSignature();
     void generateNonce();
-    QByteArray generateParamListString(bool);
 
     private: // data members
     QString url;
@@ -66,6 +75,19 @@ class FlickrRequestBase {
 
     QByteArray signature;
 }; 
+
+/*
+ * Flickr requests via HTTP/HTTPS GET
+ */
+class FlickrGetRequest : public FlickrRequestBase {
+    Q_OBJECT
+
+    public:
+    FlickrGetRequest(const QString&, QObject* parent = 0);
+    FlickrGetRequest(const QString&, const QByteArray&, const QByteArray&, QObject* parent = 0);
+
+    virtual QNetworkReply* send(QNetworkAccessManager&);
+};
 
 } // end namespace app
 
