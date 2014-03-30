@@ -10,12 +10,27 @@ class QNetworkReply;
 
 namespace app {
 
+    /*
+     * Manages the addition of common OAuth request parameters
+     * - oauth_consumer_key
+     * - oauth_nonce
+     * - oauth_signature_method
+     * - oauth_signature
+     * - oauth_timestamp
+     */
     class FlickrOAuthRequest : public FlickrGetRequest {
         Q_OBJECT
-        
+
         public: // methods
+        FlickrOAuthRequest(const QString&, QObject* parent=0);
+        virtual ~FlickrOAuthRequest();
+
+        const QByteArray& getConsumerKey() const;
+        void setConsumerKey(const QByteArray&);
+        virtual QNetworkReply* send(QNetworkAccessManager&);
 
         private: // data members
+        QByteArray consumerKey;
     };
 
     /*
@@ -26,7 +41,7 @@ namespace app {
         Q_OBJECT
 
         public: // types
-        enum OAuthFlowState {
+        enum State {
             Initialized,
             GettingRequestToken,
             RequestTokenReceived,
@@ -39,11 +54,20 @@ namespace app {
 
         public: // methods
         FlickrOAuthAuthentication(QObject* parent = 0);
-        FlickrOAuthAuthentication(QNetworkAccess* networkAccessMan, QObject* parent = 0);
+        FlickrOAuthAuthentication(QNetworkAccessManager& networkAccessMan, QObject* parent = 0);
+        virtual ~FlickrOAuthAuthentication();
 
         void authenticate();
 
+        private: // methods
+        void sendRequestTokenRequest();
+
+        private: // slots
+        Q_SLOT void requestTokenRequestResponseReceived();
+
         private: // data members
+        State state; 
+
         QByteArray userName;
         QNetworkAccessManager* networkAccessMan;
         QNetworkReply* flickrResponse;

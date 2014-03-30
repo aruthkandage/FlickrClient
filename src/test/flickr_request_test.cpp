@@ -1,8 +1,9 @@
-#include <iostream>
 #include <flickr_request.h>
+#include <flickr_oauth.h>
+
+#include <QCoreApplication>
 
 using namespace app;
-using namespace std;
 
 /*void test_signature() {
     FlickrRequestBase request("https://api.flickr.com/services/rest");
@@ -24,5 +25,11 @@ using namespace std;
 }*/
 
 int main(int argc, char** argv) {
-    /* test_signature(); */
+    QCoreApplication app(argc, argv);
+
+    FlickrOAuthAuthentication oauth;
+
+    oauth.authenticate();
+
+    app.exec();
 }

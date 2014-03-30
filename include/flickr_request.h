@@ -41,25 +41,28 @@ class FlickrRequestBase : public QObject {
     const QByteArray& getConsumerSecret() const;
     const QByteArray& getTokenSecret() const;
 
-    void setConsumerSecret(const QByteArray& secret);
-    void setTokenSecret(const QByteArray& secret);
+    void setUrl(const QByteArray&);
+    void setConsumerSecret(const QByteArray&);
+    void setTokenSecret(const QByteArray&);
 
     void addRequestParam(const QString&, const QString&, bool includeInSignature = true);
     void addEncodedRequestParam(const QByteArray&, const QByteArray&, bool includeInSignature = true);
     bool removeRequestParam(const QString&);
     bool removeEncodedRequestParam(const QByteArray&);
+    void clearRequestParams();
     void clearSignature();
     const QByteArray& getSignature(bool regenerate = false);
     const QByteArray& getNonce(bool regenerate = false);
 
     void updateTimeStamp();
     TimeStamp getTimeStamp() const;
+    QByteArray getTimeStampString() const;
 
     virtual QNetworkReply* send(QNetworkAccessManager&) = 0;
 
     protected: // methods
-    virtual const char* getHTTPVerb() const;
-    virtual const char* getSignatureMethod() const;
+    virtual const QByteArray& getHTTPVerb() const;
+    virtual const QByteArray& getSignatureMethod() const;
     QByteArray generateParamListString(bool);
 
     private: // methods

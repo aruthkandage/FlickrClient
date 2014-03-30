@@ -1,7 +1,9 @@
-#ifndef FLICKR_API_KEY
-extern const char* FLICKR_API_KEY;
-#endif
+#ifndef __FLICKR_API_KEY_H__
+#define __FLICKR_API_KEY_H__
 
-#ifndef FLICKR_API_SECRET
-extern const char* FLICKR_API_SECRET;
+#include <QByteArray>
+
+extern const QByteArray FLICKR_API_KEY;
+extern const QByteArray FLICKR_API_SECRET;
+
 #endif

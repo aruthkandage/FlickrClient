@@ -66,6 +66,7 @@ rule compile {
         C++FLAGS on $(_obj) += -g ;
     } else {
         CCDEFS on $(_obj) += [ FDefines NDEBUG ] ;
+        CCDEFS on $(_obj) += [ FDefines QT_NO_DEBUG ] ;
         CCDEFS on $(_obj) += [ FDefines QT_NO_DEBUG_OUTPUT ] ;
         CCDEFS on $(_obj) += [ FDefines QT_NO_WARNING_OUTPUT ] ;
     }
@@ -146,8 +147,8 @@ actions link_executable {
 	$(LINK) -o $(1:D=$(LOCATE)) $(2:D=$(OBJDIR)) $(LINKLIBDIRS) $(LINKLIBS) ;
 }
 
-executable_qt_sources flickr_request_test : flickr_request.cpp ;
-executable_sources flickr_request_test : flickr_request_test.cpp hmac.cpp ;
+executable_qt_sources flickr_request_test : flickr_request.cpp flickr_oauth.cpp ;
+executable_sources flickr_request_test : flickr_api_key.cpp flickr_request_test.cpp hmac.cpp ;
 executable flickr_request_test ;
 set_libs flickr_request_test : Qt5Core Qt5Network ; 
 

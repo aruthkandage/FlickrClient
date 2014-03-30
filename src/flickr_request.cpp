@@ -12,13 +12,12 @@ namespace app {
 /*
  * Most Flickr requests are GET requests
  */
-static const char* DEFAULT_HTTP_VERB = "GET";
+static const QByteArray DEFAULT_HTTP_VERB("GET");
 
 /*
  * Generate signatures using HMAC-SHA1 encryption
  */
-static const char* DEFAULT_SIGNATURE_METHOD = "HMAC-SHA1";
-
+static const QByteArray DEFAULT_SIGNATURE_METHOD("HMAC-SHA1");
 
 /*
  * Eligible characters for the nonce (alphanumeric)
@@ -66,6 +65,10 @@ const QByteArray& FlickrRequestBase::getConsumerSecret() const {
 
 const QByteArray& FlickrRequestBase::getTokenSecret() const {
     return tokenSecret;
+}
+
+void FlickrRequestBase::setUrl(const QByteArray& url) {
+    this->url = url;
 }
 
 void FlickrRequestBase::setConsumerSecret(const QByteArray& secret) {
@@ -122,6 +125,10 @@ bool FlickrRequestBase::removeRequestParam(const QString& paramName) {
     removeEncodedRequestParam(paramName.toUtf8().toBase64());
 }
 
+void FlickrRequestBase::clearRequestParams() {
+    encodedRequestParams.clear();
+}
+
 void FlickrRequestBase::clearSignature() {
     // signature must be regenerated when needed
     if(!signature.isEmpty()) {
@@ -154,6 +161,10 @@ FlickrRequestBase::TimeStamp FlickrRequestBase::getTimeStamp() const {
     return timeStamp;
 }
 
+QByteArray FlickrRequestBase::getTimeStampString() const {
+    return QByteArray::number(timeStamp);
+}
+
 /*
  * Generate a string from the parameters as such
  * param_1=value_1&param_2=value_2&...&param_n=value_n
@@ -181,7 +192,7 @@ QByteArray FlickrRequestBase::generateParamListString(bool onlySignatureParams) 
     return paramList;
 }
 
-const char* FlickrRequestBase::getSignatureMethod() const {
+const QByteArray& FlickrRequestBase::getSignatureMethod() const {
     return DEFAULT_SIGNATURE_METHOD;
 }
 
@@ -189,7 +200,7 @@ const char* FlickrRequestBase::getSignatureMethod() const {
  * Required for generation of the signature
  * default to GET
  */
-const char* FlickrRequestBase::getHTTPVerb() const {
+const QByteArray& FlickrRequestBase::getHTTPVerb() const {
     return DEFAULT_HTTP_VERB;
 }
 
@@ -210,7 +221,7 @@ void FlickrRequestBase::generateSignature() {
     signatureBase.push_back('&');
 
     // generate the parameter string
-    signatureBase.append(generateParamListString(/* onlySignatureParams= */ true));
+    signatureBase.append(generateParamListString(/* onlySignatureParams= */ true).toPercentEncoding());
 
     // put the consumer secret and token secret together to build the signing key
     signingKey.append(consumerSecret);
@@ -249,10 +260,10 @@ QNetworkReply* FlickrGetRequest::send(QNetworkAccessManager& networkAccessMan) {
 
     // set the query string
     QByteArray queryString;
-    queryString.push_back('?');
     queryString.append(generateParamListString(/* onlySignatureParams = */ false));
     
     url.setQuery(queryString, QUrl::StrictMode);
+    qDebug() << "url: " << url.toString();
 
     if(url.isValid()) {
         QNetworkRequest request(url);
