@@ -20,6 +20,7 @@
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QUrlQuery>
 
 namespace app {
 
@@ -33,6 +34,9 @@ namespace app {
     static const QByteArray OAUTH_PARM_TIMESTAMP("oauth_timestamp");
     static const QByteArray OAUTH_PARM_VERSION("oauth_version");
     static const QByteArray OAUTH_PARM_CALLBACK("oauth_callback");
+    static const QByteArray OAUTH_PARM_TOKEN("oauth_token");
+    static const QByteArray OAUTH_PARM_TOKEN_SECRET("oauth_token_secret");
+    static const QByteArray OAUTH_PARM_VERIFIER("oauth_verifier");
 
     /*
      * oob = "Out of Bounds"
@@ -79,55 +83,92 @@ namespace app {
         return FlickrGetRequest::send(networkAccessMan);
     }
 
-    FlickrOAuthAuthentication::FlickrOAuthAuthentication(QObject* parent) :
+    FlickrOAuthManager::FlickrOAuthManager(QObject* parent) :
     QObject(parent),
     networkAccessMan(new QNetworkAccessManager(this)),
     state(Initialized)
     {
     }
 
-    FlickrOAuthAuthentication::FlickrOAuthAuthentication(QNetworkAccessManager& networkAccessMan, QObject* parent) :
+    FlickrOAuthManager::FlickrOAuthManager(QNetworkAccessManager& networkAccessMan, QObject* parent) :
     QObject(parent),
     networkAccessMan(&networkAccessMan),
     state(Initialized)
     {
     }
 
-    FlickrOAuthAuthentication::~FlickrOAuthAuthentication()
+    FlickrOAuthManager::~FlickrOAuthManager()
     {
     }
 
-    void FlickrOAuthAuthentication::authenticate() {
-        sendRequestTokenRequest();
+    void FlickrOAuthManager::setState(FlickrOAuthManager::State nextState) {
+        state = nextState;
     }
 
-    void FlickrOAuthAuthentication::sendRequestTokenRequest() {
-        Q_ASSERT(state == FlickrOAuthAuthentication::Initialized);
-        state = FlickrOAuthAuthentication::GettingRequestToken;
+    FlickrOAuthManager::State FlickrOAuthManager::getState() const {
+        return state;
+    }
+
+    void FlickrOAuthManager::authenticate() {
+        // Kick off with the first authentication step
+        requestRequestToken();
+    }
+
+    void FlickrOAuthManager::destroyResponse() {
+        if(flickrResponse != 0) {
+            flickrResponse->disconnect(this);
+            flickrResponse->deleteLater();
+            flickrResponse = 0;
+        }
+    }
+
+    /*
+     * First authentication step -- getting the request token
+     */
+    void FlickrOAuthManager::requestRequestToken() {
+        Q_ASSERT(state == FlickrOAuthManager::Initialized);
+        setState(FlickrOAuthManager::GettingRequestToken);
         
         FlickrOAuthRequest oauthRequest(REQUEST_TOKEN_URL);
         oauthRequest.setConsumerKey(FLICKR_API_KEY);
         oauthRequest.setConsumerSecret(FLICKR_API_SECRET);
 
         flickrResponse = oauthRequest.send(*networkAccessMan);
-        qDebug() << "request sent";
-        connect(flickrResponse, SIGNAL(finished()), this, SLOT(requestTokenRequestResponseReceived()));
+        flickrResponse->setParent(this);
+        connect(flickrResponse, SIGNAL(finished()), this, SLOT(requestTokenResponseReceived()));
+
         // might have already received a response
         if(flickrResponse->isFinished()) {
-            requestTokenRequestResponseReceived();
+            requestTokenResponseReceived();
         }
     }
 
-    void FlickrOAuthAuthentication::requestTokenRequestResponseReceived() {
-        if(flickrResponse->error() == QNetworkReply::NoError) {
-            qDebug() << "Success!";
-            qDebug() << flickrResponse->url().toString();
-        } else {
-            qDebug() << "Error!";
-        }
+    /*
+     * The request token and the token secret are in the response
+     */ 
+    void FlickrOAuthManager::extractRequestTokenAndSecret() {
+        QUrlQuery responseValues = QUrlQuery(flickrResponse->readAll());
 
-        qDebug() << flickrResponse->readAll();
-        disconnect(flickrResponse, 0, this, 0);
-        flickrResponse->deleteLater();
+        token = responseValues.queryItemValue(OAUTH_PARM_TOKEN, QUrl::FullyEncoded).toUtf8();
+        tokenSecret = responseValues.queryItemValue(OAUTH_PARM_TOKEN_SECRET, QUrl::FullyEncoded).toUtf8();
+
+        qDebug() << __FILE__ << ":" << __LINE__ << "Token: " << token;
+        qDebug() << __FILE__ << ":" << __LINE__ << "Secret: " << tokenSecret;
+    }
+
+    void FlickrOAuthManager::requestTokenResponseReceived() {
+        if(flickrResponse->error() == QNetworkReply::NoError) {
+            extractRequestTokenAndSecret();
+            destroyResponse();
+            setState(FlickrOAuthManager::RequestTokenReceived);
+        } else {
+            qDebug() << __FILE__ << ":" << __LINE__ << "Error occurred while requesting request token" << token;
+
+            destroyResponse();
+            setState(FlickrOAuthManager::Error);
+
+            // TODO: process the error and send off with a reason code
+            emit error();
+        }
     }
 }

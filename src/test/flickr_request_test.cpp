@@ -44,9 +44,8 @@ using namespace app;
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
 
-    FlickrOAuthAuthentication oauth;
-
-    oauth.authenticate();
+    FlickrOAuthManager oauthManager;
+    oauthManager.authenticate();
 
     app.exec();
 }

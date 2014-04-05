@@ -46,6 +46,11 @@ namespace app {
         void setConsumerKey(const QByteArray&);
         virtual QNetworkReply* send(QNetworkAccessManager&);
 
+        private: // methods
+
+        // QObject derived classes should not be copiable
+        Q_DISABLE_COPY(FlickrOAuthRequest);
+
         private: // data members
         QByteArray consumerKey;
     };
@@ -54,11 +59,19 @@ namespace app {
      * Manages the Flickr OAuth authentication process
      */
 
-    class FlickrOAuthAuthentication : public QObject {
+    class FlickrOAuthManager : public QObject {
         Q_OBJECT
 
         public: // types
         enum State {
+            /*
+             * Flickr uses OAuth 1.0 with the flow as follows
+             * 1. Ask for a 'request token'
+             * 2. Redirect the user to give the application certain permissions
+             * 3. Receive an 'oauth verifier'
+             * 4. Exchange the 'request token' for the 'access token'
+             */ 
+
             Initialized,
             GettingRequestToken,
             RequestTokenReceived,
@@ -70,22 +83,37 @@ namespace app {
         };
 
         public: // methods
-        FlickrOAuthAuthentication(QObject* parent = 0);
-        FlickrOAuthAuthentication(QNetworkAccessManager& networkAccessMan, QObject* parent = 0);
-        virtual ~FlickrOAuthAuthentication();
+        FlickrOAuthManager(QObject* parent = 0);
+        FlickrOAuthManager(QNetworkAccessManager& networkAccessMan, QObject* parent = 0);
+        virtual ~FlickrOAuthManager();
 
         void authenticate();
+        State getState() const;
+
+        public: // signals
+        // Emitted when an error has occurred
+        Q_SIGNAL void error();
 
         private: // methods
-        void sendRequestTokenRequest();
+        void setState(State);
+
+        // QObject derived classes should not be copiable
+        Q_DISABLE_COPY(FlickrOAuthManager);
+
+        void destroyResponse();
+        void requestRequestToken();
+        void extractRequestTokenAndSecret();
 
         private: // slots
-        Q_SLOT void requestTokenRequestResponseReceived();
+        Q_SLOT void requestTokenResponseReceived();
 
         private: // data members
         State state; 
 
         QByteArray userName;
+        QByteArray token; 
+        QByteArray tokenSecret;
+        QByteArray verifier;
         QNetworkAccessManager* networkAccessMan;
         QNetworkReply* flickrResponse;
     };

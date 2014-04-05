@@ -280,7 +280,7 @@ QNetworkReply* FlickrGetRequest::send(QNetworkAccessManager& networkAccessMan) {
     queryString.append(generateParamListString(/* onlySignatureParams = */ false));
     
     url.setQuery(queryString, QUrl::StrictMode);
-    qDebug() << "url: " << url.toString();
+    qDebug() << __FILE__ << ":" << __LINE__ << "Url: " << url;
 
     if(url.isValid()) {
         QNetworkRequest request(url);

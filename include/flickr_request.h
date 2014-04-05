@@ -86,6 +86,9 @@ class FlickrRequestBase : public QObject {
     void generateSignature();
     void generateNonce();
 
+    // QObject derived classes should not be copiable
+    Q_DISABLE_COPY(FlickrRequestBase);
+
     private: // data members
     QString url;
     QByteArray consumerSecret;
@@ -103,11 +106,16 @@ class FlickrRequestBase : public QObject {
 class FlickrGetRequest : public FlickrRequestBase {
     Q_OBJECT
 
-    public:
+    public: // methods
     FlickrGetRequest(const QString&, QObject* parent = 0);
     FlickrGetRequest(const QString&, const QByteArray&, const QByteArray&, QObject* parent = 0);
 
     virtual QNetworkReply* send(QNetworkAccessManager&);
+
+    private: // methods
+
+    // QObject derived classes should not be copiable
+    Q_DISABLE_COPY(FlickrGetRequest);
 };
 
 } // end namespace app
